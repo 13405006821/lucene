@@ -11,7 +11,9 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
@@ -24,8 +26,8 @@ public class IndexUtil {
 	private static String[] ids = {"1", "2", "3", "4", "5", "6"};
 	private static String[] emails = {"aa1@161.com", "aa2@162.com", "aa3@163.com", 
 		"aa4@164.com", "aa5@165.com", "aa6@166.com"};
-	private static String[] contents = {"cssccscscscscsc", "asdadasdadasd", "ryryrytryrtyrtyry",
-		"hjkhkhkhjkhkhj", "iiiiiiiiiiii", "ooooooooooo"};
+	private static String[] contents = {"hello liupeng", "hello zhangshan", "hello lisi",
+		"hello wangwu", "hello zhaoliu", "hello heqi"};
 	// private static int[] attaches = {3, 4, 5, 8, 9, 10};
 	private static String[] names = {"hesutin", "liupeng", "zhangyu", "wangwu", "lisi", "zhangsan"};
 	private static Map<String, Float> scores = new HashMap<String, Float>();
@@ -55,7 +57,6 @@ public class IndexUtil {
 				document = new Document();
 				document.add(new Field("id", ids[i], Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
 				document.add(new Field("email", emails[i], Field.Store.YES, Field.Index.NOT_ANALYZED));
-				document.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED_NO_NORMS));
 				document.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED_NO_NORMS));
 				document.add(new Field("name", names[i], Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
 				if(isBoost){
@@ -214,13 +215,13 @@ public class IndexUtil {
 	 * 搜索
 	 */
 	@SuppressWarnings("resource")
-	public static void search(){
+	public static void termQuery(){
 		IndexReader reader = null;
 		try {
 			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
 			reader = IndexReader.open(directory);
 			IndexSearcher searcher = new IndexSearcher(reader);
-			TermQuery query = new TermQuery(new Term("content", "oooooo"));
+			TermQuery query = new TermQuery(new Term("content", "hello"));
 			TopDocs docs = searcher.search(query, 10);
 			for(ScoreDoc sd : docs.scoreDocs){
 				Document document = searcher.doc(sd.doc);
@@ -236,6 +237,35 @@ public class IndexUtil {
 					e.printStackTrace();
 				}
 			}
+		}
+	}
+	
+	@SuppressWarnings("resource")
+	public static void indexSearcher(){
+		try {
+			// 1 创建Directory
+			// Directory directory = new RAMDirectory();// 建立内存中
+			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
+			// 2 创建IndexReader
+			IndexReader reader = IndexReader.open(directory);
+			// 3 根据IndexReader创建IndexSearcher
+			IndexSearcher searcher = new IndexSearcher(reader);
+			// 4 创建搜索QueryParser和Query
+			QueryParser parser = new QueryParser(Version.LUCENE_35, "content", new StandardAnalyzer(Version.LUCENE_35));
+			Query query = parser.parse("hello");
+			// 5 创建searcher搜索并返回TopDocs
+			TopDocs topDocs = searcher.search(query, 10);
+			// 6 根据TopDocs获取ScoreDoc对象
+			ScoreDoc[] sds = topDocs.scoreDocs;
+			for(ScoreDoc sd : sds){
+				// 7 根据searcher和ScoreDoc获取具体Document对象
+				Document document = searcher.doc(sd.doc);
+				// 8 根据Document对象获取需要的值
+				System.out.println("(" + sd.doc + ")"+document.get("name") + "[" + document.get("email") + "]");
+			}
+			reader.close();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 }

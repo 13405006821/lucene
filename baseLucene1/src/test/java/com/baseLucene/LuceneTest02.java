@@ -31,6 +31,7 @@ public class LuceneTest02 {
 	
 	@Test
 	public void search(){
-		IndexUtil.search();
+		IndexUtil.termQuery();
+		IndexUtil.indexSearcher();
 	}
 }
