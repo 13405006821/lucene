@@ -32,7 +32,7 @@ public class IndexUtil {
 	private static String[] names = {"hesutin", "liupeng", "zhangyu", "wangwu", "lisi", "zhangsan"};
 	private static Map<String, Float> scores = new HashMap<String, Float>();
 	
-	public IndexUtil(){
+	static{
 		scores.put("161.com", 1.5f);
 		scores.put("163.com", 2.0f);
 	}

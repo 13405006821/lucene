@@ -6,7 +6,7 @@ public class LuceneTest02 {
 	
 	@Test
 	public void index(){
-		IndexUtil.index(false);
+		IndexUtil.index(true);
 	}
 	
 	@Test
@@ -32,6 +32,5 @@ public class LuceneTest02 {
 	@Test
 	public void search(){
 		IndexUtil.termQuery();
-		IndexUtil.indexSearcher();
 	}
 }
