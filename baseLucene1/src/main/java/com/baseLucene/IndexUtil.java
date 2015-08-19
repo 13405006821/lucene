@@ -1,12 +1,16 @@
 package com.baseLucene;
 
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericField;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -28,27 +32,40 @@ public class IndexUtil {
 		"aa4@164.com", "aa5@165.com", "aa6@166.com"};
 	private static String[] contents = {"hello liupeng", "hello zhangshan", "hello lisi",
 		"hello wangwu", "hello zhaoliu", "hello heqi"};
-	// private static int[] attaches = {3, 4, 5, 8, 9, 10};
+	private static int[] attaches = {3, 4, 5, 8, 9, 10};
+	private static Date[] dates = null;
 	private static String[] names = {"hesutin", "liupeng", "zhangyu", "wangwu", "lisi", "zhangsan"};
 	private static Map<String, Float> scores = new HashMap<String, Float>();
 	
 	static{
 		scores.put("161.com", 1.5f);
 		scores.put("163.com", 2.0f);
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		dates = new Date[ids.length];
+		try {
+			dates[0] = dateFormat.parse("2011-10-11");
+			dates[1] = dateFormat.parse("2012-10-11");
+			dates[2] = dateFormat.parse("2013-10-11");
+			dates[3] = dateFormat.parse("2014-10-11");
+			dates[4] = dateFormat.parse("2015-10-11");
+			dates[5] = dateFormat.parse("2016-10-11");
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
 	 * 创建索引
 	 */
 	public static void index(boolean isBoost){
-		IndexWriter wirter = null;
+		IndexWriter writer = null;
 		try {
 			// 1 创建Directory
 			// Directory directory = new RAMDirectory();// 建立内存中
 			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
 			// 2 创建IndexWriter
 			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_35, new StandardAnalyzer(Version.LUCENE_35));
-			wirter = new IndexWriter(directory, iwc);
+			writer = new IndexWriter(directory, iwc);
 			// 3 创建Document
 			Document document = null;
 			String et = null;
@@ -59,6 +76,8 @@ public class IndexUtil {
 				document.add(new Field("email", emails[i], Field.Store.YES, Field.Index.NOT_ANALYZED));
 				document.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED_NO_NORMS));
 				document.add(new Field("name", names[i], Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
+				document.add(new NumericField("attach", Field.Store.YES, true).setIntValue(attaches[i]));
+				document.add(new NumericField("date", Field.Store.YES, true).setLongValue(dates[i].getTime()));
 				if(isBoost){
 					et = emails[i].substring(emails[i].lastIndexOf("@") + 1);
 					if(scores.containsKey(et)){
@@ -67,14 +86,14 @@ public class IndexUtil {
 						document.setBoost(0.5f);
 					}
 				}
-				wirter.addDocument(document);
+				writer.addDocument(document);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			if(wirter != null){
+			if(writer != null){
 				try {
-					wirter.close();
+					writer.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
