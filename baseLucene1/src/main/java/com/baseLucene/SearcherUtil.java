@@ -15,11 +15,17 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-public class IndexUtil {
+public class SearcherUtil {
 	
 	private static String[] ids = {"1", "2", "3", "4", "5", "6"};
 	private static String[] emails = {"aa1@161.com", "aa2@162.com", "aa3@163.com", 
@@ -116,56 +122,22 @@ public class IndexUtil {
 		}
 	}
 	
-	// 删除索引
-	public static void delete(){
-		IndexWriter wirter = null;
-		try {
-			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
-			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_35, new StandardAnalyzer(Version.LUCENE_35));
-			wirter = new IndexWriter(directory, iwc);
-			//wirter.deleteAll();
-			// 精确删除
-			wirter.deleteDocuments(new Term("id", "1"));
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(wirter != null){
-				try {
-					wirter.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-	
-	// 删除索引
-	public static void deleteAll(){
-		IndexWriter wirter = null;
-		try {
-			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
-			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_35, new StandardAnalyzer(Version.LUCENE_35));
-			wirter = new IndexWriter(directory, iwc);
-			wirter.deleteAll();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(wirter != null){
-				try {
-					wirter.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-	// 恢复索引
-	public static void undelete(){
+	/**
+	 * term搜索
+	 */
+	@SuppressWarnings("resource")
+	public static void termQuery(){
 		IndexReader reader = null;
 		try {
 			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
-			reader = IndexReader.open(directory, false);
-			reader.undeleteAll();
+			reader = IndexReader.open(directory);
+			IndexSearcher searcher = new IndexSearcher(reader);
+			TermQuery query = new TermQuery(new Term("content", "hello"));
+			TopDocs docs = searcher.search(query, 40);
+			for(ScoreDoc sd : docs.scoreDocs){
+				Document document = searcher.doc(sd.doc);
+				System.out.println("(" + sd.doc + ")"+document.get("name") + "[" + document.get("email") + "]");
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -179,48 +151,71 @@ public class IndexUtil {
 		}
 	}
 	
-	public static void forceMerge(){
-		IndexWriter wirter = null;
+	/**
+	 * query搜索
+	 */
+	@SuppressWarnings("resource")
+	public static void querySearcher(){
 		try {
+			// 1 创建Directory
+			// Directory directory = new RAMDirectory();// 建立内存中
 			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
-			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_35, new StandardAnalyzer(Version.LUCENE_35));
-			wirter = new IndexWriter(directory, iwc);
-			wirter.forceMergeDeletes();
+			// 2 创建IndexReader
+			IndexReader reader = IndexReader.open(directory);
+			// 3 根据IndexReader创建IndexSearcher
+			IndexSearcher searcher = new IndexSearcher(reader);
+			// 4 创建搜索QueryParser和Query
+			QueryParser parser = new QueryParser(Version.LUCENE_35, "content", new StandardAnalyzer(Version.LUCENE_35));
+			Query query = parser.parse("hello");
+			// 5 创建searcher搜索并返回TopDocs
+			TopDocs topDocs = searcher.search(query, 10);
+			// 6 根据TopDocs获取ScoreDoc对象
+			ScoreDoc[] sds = topDocs.scoreDocs;
+			for(ScoreDoc sd : sds){
+				// 7 根据searcher和ScoreDoc获取具体Document对象
+				Document document = searcher.doc(sd.doc);
+				// 8 根据Document对象获取需要的值
+				System.out.println("(" + sd.doc + ")"+document.get("name") + "[" + document.get("email") + "]");
+			}
+			reader.close();
 		} catch (Exception e) {
 			e.printStackTrace();
-		} finally {
-			if(wirter != null){
-				try {
-					wirter.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
 		}
 	}
 	
-	public static void update(){
-		IndexWriter wirter = null;
+	/**
+	 * 分页搜索
+	 * @param page
+	 * @param pageSize
+	 */
+	@SuppressWarnings("resource")
+	public static void querySearcherPageByAfter(int page, int pageSize){
 		try {
+			// 1 创建Directory
+			// Directory directory = new RAMDirectory();// 建立内存中
 			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
-			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_35, new StandardAnalyzer(Version.LUCENE_35));
-			wirter = new IndexWriter(directory, iwc);
-			Document document = new Document();
-			document.add(new Field("id", "11", Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
-			document.add(new Field("email", emails[0], Field.Store.YES, Field.Index.NOT_ANALYZED));
-			document.add(new Field("content", contents[0], Field.Store.NO, Field.Index.ANALYZED_NO_NORMS));
-			document.add(new Field("name", names[0], Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
-			wirter.updateDocument(new Term("id", "1"), document);
+			// 2 创建IndexReader
+			IndexReader reader = IndexReader.open(directory);
+			// 3 根据IndexReader创建IndexSearcher
+			IndexSearcher searcher = new IndexSearcher(reader);
+			// 4 创建搜索QueryParser和Query
+			QueryParser parser = new QueryParser(Version.LUCENE_35, "content", new StandardAnalyzer(Version.LUCENE_35));
+			Query query = parser.parse("hello");
+			// 5 创建searcher搜索并返回TopDocs
+			TopDocs topDocs = searcher.search(query, pageSize * page);
+			// 6 根据TopDocs获取ScoreDoc对象
+			ScoreDoc[] sds = topDocs.scoreDocs;
+			ScoreDoc lastDoc = pageSize * (page - 1) - 1 > 0 ? sds[pageSize * (page - 1) - 1] : null;
+			topDocs = searcher.searchAfter(lastDoc, query, pageSize);
+			for(ScoreDoc sd : topDocs.scoreDocs){
+				// 7 根据searcher和ScoreDoc获取具体Document对象
+				Document document = searcher.doc(sd.doc);
+				// 8 根据Document对象获取需要的值
+				System.out.println("(" + sd.doc + ")"+document.get("name") + "[" + document.get("email") + "]");
+			}
+			reader.close();
 		} catch (Exception e) {
 			e.printStackTrace();
-		} finally {
-			if(wirter != null){
-				try {
-					wirter.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
 		}
 	}
 }
