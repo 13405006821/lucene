@@ -33,4 +33,9 @@ public class LuceneTest02 {
 	public void search(){
 		IndexUtil.termQuery();
 	}
+	
+	@Test
+	public void searchPageByAfter(){
+		IndexUtil.querySearcherPageByAfter(2, 10);
+	}
 }

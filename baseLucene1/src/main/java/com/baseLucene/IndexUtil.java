@@ -212,7 +212,7 @@ public class IndexUtil {
 	}
 	
 	/**
-	 * 搜索
+	 * term搜索
 	 */
 	@SuppressWarnings("resource")
 	public static void termQuery(){
@@ -222,7 +222,7 @@ public class IndexUtil {
 			reader = IndexReader.open(directory);
 			IndexSearcher searcher = new IndexSearcher(reader);
 			TermQuery query = new TermQuery(new Term("content", "hello"));
-			TopDocs docs = searcher.search(query, 10);
+			TopDocs docs = searcher.search(query, 40);
 			for(ScoreDoc sd : docs.scoreDocs){
 				Document document = searcher.doc(sd.doc);
 				System.out.println("(" + sd.doc + ")"+document.get("name") + "[" + document.get("email") + "]");
@@ -240,8 +240,11 @@ public class IndexUtil {
 		}
 	}
 	
+	/**
+	 * query搜索
+	 */
 	@SuppressWarnings("resource")
-	public static void indexSearcher(){
+	public static void querySearcher(){
 		try {
 			// 1 创建Directory
 			// Directory directory = new RAMDirectory();// 建立内存中
@@ -258,6 +261,42 @@ public class IndexUtil {
 			// 6 根据TopDocs获取ScoreDoc对象
 			ScoreDoc[] sds = topDocs.scoreDocs;
 			for(ScoreDoc sd : sds){
+				// 7 根据searcher和ScoreDoc获取具体Document对象
+				Document document = searcher.doc(sd.doc);
+				// 8 根据Document对象获取需要的值
+				System.out.println("(" + sd.doc + ")"+document.get("name") + "[" + document.get("email") + "]");
+			}
+			reader.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 分页搜索
+	 * @param page
+	 * @param pageSize
+	 */
+	@SuppressWarnings("resource")
+	public static void querySearcherPageByAfter(int page, int pageSize){
+		try {
+			// 1 创建Directory
+			// Directory directory = new RAMDirectory();// 建立内存中
+			Directory directory = FSDirectory.open(new File("d:/baseLucene/index02")); // 创建在硬盘上
+			// 2 创建IndexReader
+			IndexReader reader = IndexReader.open(directory);
+			// 3 根据IndexReader创建IndexSearcher
+			IndexSearcher searcher = new IndexSearcher(reader);
+			// 4 创建搜索QueryParser和Query
+			QueryParser parser = new QueryParser(Version.LUCENE_35, "content", new StandardAnalyzer(Version.LUCENE_35));
+			Query query = parser.parse("hello");
+			// 5 创建searcher搜索并返回TopDocs
+			TopDocs topDocs = searcher.search(query, pageSize * page);
+			// 6 根据TopDocs获取ScoreDoc对象
+			ScoreDoc[] sds = topDocs.scoreDocs;
+			ScoreDoc lastDoc = pageSize * (page - 1) - 1 > 0 ? sds[pageSize * (page - 1) - 1] : null;
+			topDocs = searcher.searchAfter(lastDoc, query, pageSize);
+			for(ScoreDoc sd : topDocs.scoreDocs){
 				// 7 根据searcher和ScoreDoc获取具体Document对象
 				Document document = searcher.doc(sd.doc);
 				// 8 根据Document对象获取需要的值
